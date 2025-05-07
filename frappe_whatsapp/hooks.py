@@ -218,3 +218,14 @@ doc_events = {
         "on_update_after_submit": "frappe_whatsapp.utils.run_server_script_for_doc_event"
     }
 }
+
+# Added for WhatsApp Notification integration
+override_doctype_class = {
+    "Notification": "frappe_whatsapp.overrides.notification.WhatsAppNotificationChannel"
+}
+
+doctype_js = {
+    "Notification": "public/js/notification_whatsapp.js"
+}
+
+fixtures = ["Property Setter"]
