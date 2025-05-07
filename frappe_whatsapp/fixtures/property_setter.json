@@ -1,1 +1,10 @@
-
+[
+  {
+    "doctype": "Property Setter",
+    "doc_type": "Notification",
+    "doctype_or_field": "DocField",
+    "field_name": "channel",
+    "property": "options",
+    "value": "Email\nSlack\nSystem Notification\nSMS\nWhatsapp Message\n"
+  }
+]
