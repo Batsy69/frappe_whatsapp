@@ -5,6 +5,7 @@
     "doctype_or_field": "DocField",
     "field_name": "channel",
     "property": "options",
-    "value": "Email\nSlack\nSystem Notification\nSMS\nWhatsapp Message\n"
+    "value": "Email\nSlack\nSystem Notification\nSMS\nWhatsapp Message\n",
+    "name": "Property Setter-Notification-channel-options"
   }
 ]
