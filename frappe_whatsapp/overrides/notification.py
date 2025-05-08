@@ -5,41 +5,53 @@ import frappe
 
 class WhatsAppNotificationChannel(Notification):
     def send(self, doc):
-        # `self` is the Notification record, `doc` is the Sales Order (or whatever ref. doctype)
+        # `self` is the Notification record
         if self.channel == "Whatsapp Message":
             numbers = []
 
-            # Loop through the Notification Recipient child‐table on *this* Notification
+            # 1) Loop over Notification Recipient rows
             for row in self.recipients:
-                # 1) Skip by condition if provided
+                # a) Skip by condition if present
                 if row.condition:
                     if not frappe.safe_eval(row.condition, None, {"doc": doc}):
                         continue
 
-                # 2) Role‐based lookup only
+                # b) Only handle role-based rows
                 if row.receiver_by_role:
-                    users = frappe.get_all(
-                        "User",
-                        filters={
-                            "enabled": 1,
-                            "roles.role": row.receiver_by_role
-                        },
-                        fields=["mobile_no"]
+                    # 2) Get all User names with that role
+                    has_role = frappe.get_all(
+                        "Has Role",
+                        filters={"role": row.receiver_by_role},
+                        fields=["parent"]
                     )
-                    for u in users:
-                        if u.mobile_no:
-                            numbers.append(u.mobile_no)
+                    user_names = [r.parent for r in has_role]
 
+                    if user_names:
+                        # 3) Now fetch only enabled Users from that list
+                        users = frappe.get_all(
+                            "User",
+                            filters={
+                                "name": ["in", user_names],
+                                "enabled": 1
+                            },
+                            fields=["mobile_no"]
+                        )
+                        for u in users:
+                            if u.mobile_no:
+                                numbers.append(u.mobile_no)
+
+            # 4) Guard against sending to nobody
             if not numbers:
                 frappe.throw("No WhatsApp recipients found for the selected role(s).")
 
-            # Hand off to your existing Bulk WhatsApp Message
+            # 5) Hand off to Bulk WhatsApp Message
             bulk = frappe.new_doc("Bulk WhatsApp Message")
             bulk.recipients = numbers
-            # Use the Notification’s message, not the reference document’s
             bulk.message = self.message
             bulk.insert(ignore_permissions=True)
             bulk.submit()
+
         else:
-            # Fallback to all other channels (Email, SMS, Slack…)
+            # fallback for Email/SMS/other channels
             super(WhatsAppNotificationChannel, self).send(doc)
+
