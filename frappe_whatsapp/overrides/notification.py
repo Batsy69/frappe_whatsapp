@@ -1,4 +1,4 @@
-# frappe_whatsapp/frappe_whatsapp/overrides/notification.py
+# frappe_whatsapp/overrides/notification.py
 
 from frappe.email.doctype.notification.notification import Notification
 import frappe
@@ -6,12 +6,39 @@ import frappe
 class WhatsAppNotificationChannel(Notification):
     def send(self, doc):
         if doc.channel == "Whatsapp Message":
-            # Hand off to existing Bulk WhatsApp Message doctype
+            numbers = []
+
+            for row in doc.recipients:
+                # 1) Skip any row with a false condition
+                if row.condition:
+                    if not frappe.safe_eval(row.condition, None, {"doc": doc}):
+                        continue
+
+                # 2) Role‐based recipients
+                if row.receiver_by_role:
+                    users = frappe.get_all(
+                        "User",
+                        filters={
+                            "enabled": 1,
+                            "roles.role": row.receiver_by_role
+                        },
+                        fields=["mobile_no"]
+                    )
+                    for u in users:
+                        if u.mobile_no:
+                            numbers.append(u.mobile_no)
+
+                # (We skip receiver_by_document_field here since it’s blank)
+
+            if not numbers:
+                frappe.throw("No WhatsApp recipients found for the selected role(s).")
+
+            # 3) Hand off to your existing Bulk doctype
             bulk = frappe.new_doc("Bulk WhatsApp Message")
-            # Assuming recipients is a comma-separated string
-            bulk.recipients = [r.strip() for r in doc.recipients.split(",")]
+            bulk.recipients = numbers
             bulk.message = doc.message
             bulk.insert(ignore_permissions=True)
             bulk.submit()
+
         else:
             super(WhatsAppNotificationChannel, self).send(doc)
