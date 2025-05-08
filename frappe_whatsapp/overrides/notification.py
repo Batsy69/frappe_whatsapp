@@ -5,17 +5,18 @@ import frappe
 
 class WhatsAppNotificationChannel(Notification):
     def send(self, doc):
-        if doc.channel == "Whatsapp Message":
+        # `self` is the Notification record, `doc` is the Sales Order (or whatever ref. doctype)
+        if self.channel == "Whatsapp Message":
             numbers = []
 
-            # Gather numbers from the Recipients child table, by role only
-            for row in doc.recipients:
-                # Skip rows with a false condition (if provided)
+            # Loop through the Notification Recipient child‐table on *this* Notification
+            for row in self.recipients:
+                # 1) Skip by condition if provided
                 if row.condition:
                     if not frappe.safe_eval(row.condition, None, {"doc": doc}):
                         continue
 
-                # Only role-based recipients for your internal alerts
+                # 2) Role‐based lookup only
                 if row.receiver_by_role:
                     users = frappe.get_all(
                         "User",
@@ -29,17 +30,16 @@ class WhatsAppNotificationChannel(Notification):
                         if u.mobile_no:
                             numbers.append(u.mobile_no)
 
-            # Guard against an empty list
             if not numbers:
                 frappe.throw("No WhatsApp recipients found for the selected role(s).")
 
-            # Hand off to your existing Bulk WhatsApp Message doctype
+            # Hand off to your existing Bulk WhatsApp Message
             bulk = frappe.new_doc("Bulk WhatsApp Message")
             bulk.recipients = numbers
-            bulk.message = doc.message
+            # Use the Notification’s message, not the reference document’s
+            bulk.message = self.message
             bulk.insert(ignore_permissions=True)
             bulk.submit()
-
         else:
-            # Default to the standard Notification behavior for all other channels
+            # Fallback to all other channels (Email, SMS, Slack…)
             super(WhatsAppNotificationChannel, self).send(doc)
