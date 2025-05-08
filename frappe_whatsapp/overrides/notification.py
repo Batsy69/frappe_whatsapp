@@ -5,29 +5,26 @@ import frappe
 
 class WhatsAppNotificationChannel(Notification):
     def send(self, doc):
-        # `self` is the Notification record
+        # `self` is the Notification record, `doc` is the referenced document
         if self.channel == "Whatsapp Message":
             numbers = []
 
-            # 1) Loop over Notification Recipient rows
+            # 1) Pull mobile numbers from each Recipients child‐row by role
             for row in self.recipients:
-                # a) Skip by condition if present
+                # Optional condition filter
                 if row.condition:
                     if not frappe.safe_eval(row.condition, None, {"doc": doc}):
                         continue
 
-                # b) Only handle role-based rows
                 if row.receiver_by_role:
-                    # 2) Get all User names with that role
+                    # Find all users who have this role
                     has_role = frappe.get_all(
                         "Has Role",
                         filters={"role": row.receiver_by_role},
                         fields=["parent"]
                     )
                     user_names = [r.parent for r in has_role]
-
                     if user_names:
-                        # 3) Now fetch only enabled Users from that list
                         users = frappe.get_all(
                             "User",
                             filters={
@@ -40,18 +37,26 @@ class WhatsAppNotificationChannel(Notification):
                             if u.mobile_no:
                                 numbers.append(u.mobile_no)
 
-            # 4) Guard against sending to nobody
             if not numbers:
                 frappe.throw("No WhatsApp recipients found for the selected role(s).")
 
-            # 5) Hand off to Bulk WhatsApp Message
+            # 2) Build the Bulk WhatsApp Message doc correctly
             bulk = frappe.new_doc("Bulk WhatsApp Message")
-            bulk.recipients = numbers
+            # Clear any default rows, then append one child record per number
+            for num in numbers:
+                bulk.append("recipients", {
+                    "mobile_number": num,
+                    # You can also set recipient_name or recipient_data here if needed
+                    # "recipient_name": "",
+                    # "recipient_data": "{}",
+                })
+
+            # 3) Copy the message from the Notification
             bulk.message = self.message
+
+            # 4) Insert & submit to fire your existing bulk‐send logic
             bulk.insert(ignore_permissions=True)
             bulk.submit()
-
         else:
-            # fallback for Email/SMS/other channels
+            # All other channels (Email, SMS, Slack, etc.)
             super(WhatsAppNotificationChannel, self).send(doc)
-
