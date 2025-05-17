@@ -111,4 +111,19 @@ def trigger_whatsapp_notifications(event):
         "WhatsApp Notification",
         frappe.db.get_value("WhatsApp Notification", filters={"event_frequency": event})
     ).send_scheduled_message()
-    pass
+
+
+# -------------------------------------------------------------------
+# Cleanup hook: remove our customizations when app is uninstalled
+# -------------------------------------------------------------------
+def clean_whatsapp_channel():
+    """Remove the frappe_whatsapp channel option and custom fields on uninstall."""
+    from frappe.custom.doctype.property_setter.property_setter import delete_property_setter
+
+    # 1) Remove our injected 'frappe_whatsapp' from Notification.channel options
+    delete_property_setter("Notification", "channel", "options", None, for_all=True)
+
+    # 2) Drop the custom template link field if it exists
+    if frappe.db.has_column("tabNotification", "custom_whatsapp_template"):
+        frappe.db.commit()
+        frappe.db.drop_column("tabNotification", "custom_whatsapp_template")
