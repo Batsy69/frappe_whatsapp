@@ -7,6 +7,9 @@ app_description = "WhatsApp integration for frappe"
 app_email = "shridhar.p@zerodha.com"
 app_license = "MIT"
 
+# Load our Property Setter fixtures (to inject frappe_whatsapp into Notification.channel)
+fixtures = ["Property Setter"]
+
 # Includes in <head>
 # ------------------
 app_include_js = "/assets/frappe_whatsapp/js/frappe_whatsapp.js"
