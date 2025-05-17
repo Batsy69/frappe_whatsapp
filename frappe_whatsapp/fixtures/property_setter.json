@@ -1,6 +1,7 @@
 [
   {
     "doctype": "Property Setter",
+    "name": "Notification-channel-options",
     "doctype_or_field": "DocField",
     "doc_type": "Notification",
     "field_name": "channel",
