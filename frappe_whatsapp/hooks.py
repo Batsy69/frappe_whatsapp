@@ -7,15 +7,19 @@ app_description = "WhatsApp integration for frappe"
 app_email = "shridhar.p@zerodha.com"
 app_license = "MIT"
 
-# Load our Property Setter fixtures (to inject frappe_whatsapp into Notification.channel)
-fixtures = ["Property Setter"]
+# ----------------------------------------
+# After install / migrate, inject our channel
+# ----------------------------------------
+after_install = "frappe_whatsapp.utils.add_whatsapp_channel"
 
+# ----------------------------------------
 # Includes in <head>
-# ------------------
+# ----------------------------------------
 app_include_js = "/assets/frappe_whatsapp/js/frappe_whatsapp.js"
 
+# ----------------------------------------
 # Scheduler Events
-# ----------------
+# ----------------------------------------
 scheduler_events = {
     "all": [
         "frappe_whatsapp.utils.trigger_whatsapp_notifications_all"
@@ -47,8 +51,9 @@ scheduler_events = {
     ],
 }
 
+# ----------------------------------------
 # Document Events
-# ---------------
+# ----------------------------------------
 doc_events = {
     "*": {
         "before_insert": "frappe_whatsapp.utils.run_server_script_for_doc_event",
