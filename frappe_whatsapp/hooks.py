@@ -8,9 +8,9 @@ app_email = "shridhar.p@zerodha.com"
 app_license = "MIT"
 
 # ----------------------------------------
-# After install / migrate, inject our channel
+# Run our patches on every bench migrate
 # ----------------------------------------
-after_install = "frappe_whatsapp.utils.add_whatsapp_channel"
+patches = ["frappe_whatsapp.patches.add_whatsapp_channel"]
 
 # ----------------------------------------
 # Includes in <head>
@@ -56,19 +56,19 @@ scheduler_events = {
 # ----------------------------------------
 doc_events = {
     "*": {
-        "before_insert": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "after_insert": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "before_validate": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "validate": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "on_update": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "before_submit": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "on_submit": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "before_cancel": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "on_cancel": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "on_trash": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "after_delete": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "before_update_after_submit": "frappe_whatsapp.utils.run_server_script_for_doc_event",
-        "on_update_after_submit": "frappe_whatsapp.utils.run_server_script_for_doc_event"
+        "before_insert":                       "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "after_insert":                        "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "before_validate":                     "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "validate":                            "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "on_update":                           "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "before_submit":                       "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "on_submit":                           "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "before_cancel":                       "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "on_cancel":                           "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "on_trash":                            "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "after_delete":                        "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "before_update_after_submit":          "frappe_whatsapp.utils.run_server_script_for_doc_event",
+        "on_update_after_submit":              "frappe_whatsapp.utils.run_server_script_for_doc_event"
     }
 }
 
