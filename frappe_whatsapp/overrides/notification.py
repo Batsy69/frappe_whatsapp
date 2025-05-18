@@ -1,12 +1,14 @@
 import re
 import frappe
-from frappe.core.doctype.notification.notification import Notification
+# ← corrected import below
+from frappe.email.doctype.notification.notification import Notification
 from frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification import (
     build_whatsapp_payload, _post_and_log
 )
 
 class WhatsAppNotificationOverride(Notification):
     def send(self, doc):
+        # Only intercept our channel
         if self.channel != "frappe_whatsapp":
             return super().send(doc)
 
@@ -18,11 +20,10 @@ class WhatsAppNotificationOverride(Notification):
         numbers = set()
         for row in (self.recipients or []):
             if row.receiver_by_role:
-                users = frappe.get_all(
-                    "Has Role", filters={"role": row.receiver_by_role}, fields=["parent"]
-                )
-                for u in users:
-                    user = frappe.get_doc("User", u.parent)
+                for hr in frappe.get_all("Has Role",
+                                         filters={"role": row.receiver_by_role},
+                                         fields=["parent"]):
+                    user = frappe.get_doc("User", hr.parent)
                     if user.mobile_no:
                         numbers.add(self._normalize_number(user.mobile_no))
 
