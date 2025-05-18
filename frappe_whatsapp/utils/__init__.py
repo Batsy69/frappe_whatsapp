@@ -50,7 +50,6 @@ def get_notifications_map():
             ).append(notification.name)
 
     frappe.cache().set_value("whatsapp_notification_map", notification_map)
-
     return notification_map
 
 
@@ -110,27 +109,6 @@ def trigger_whatsapp_notifications(event):
         "WhatsApp Notification",
         frappe.db.get_value("WhatsApp Notification", filters={"event_frequency": event})
     ).send_scheduled_message()
-
-
-# -------------------------------------------------------------------
-# Install hook: inject our channel option when app is installed/migrated
-# -------------------------------------------------------------------
-def add_whatsapp_channel():
-    """Add 'frappe_whatsapp' to Notification.channel options on install."""
-    from frappe.custom.doctype.property_setter.property_setter import make_property_setter
-
-    try:
-        meta = frappe.get_meta("Notification")
-        opts = (meta.get_field("channel").options or "").split("\n")
-        if "frappe_whatsapp" not in opts:
-            opts.append("frappe_whatsapp")
-            make_property_setter(
-                "Notification", "channel", "options", "\n".join(opts), "Text"
-            )
-            frappe.clear_cache(doctype="Notification")
-    except Exception:
-        # swallow errors during migrations
-        pass
 
 
 # -------------------------------------------------------------------
