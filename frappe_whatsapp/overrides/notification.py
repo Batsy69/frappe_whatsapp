@@ -14,7 +14,7 @@ class WhatsAppNotificationOverride(Notification):
         if not self.custom_whatsapp_template:
             frappe.throw("Please select a WhatsApp Template")
 
-        # alias custom template so build_whatsapp_payload can use it
+        # Make custom template available as self.template
         self.template = self.custom_whatsapp_template
 
         # Collect phone numbers based on Roles in Recipients
@@ -25,7 +25,9 @@ class WhatsAppNotificationOverride(Notification):
                 continue
 
             assignments = frappe.get_all(
-                "Has Role", filters={"role": role_name, "parenttype": "User"}, fields=["parent"]
+                "Has Role",
+                filters={"role": role_name, "parenttype": "User"},
+                fields=["parent"]
             )
             for a in assignments:
                 user_name = a.parent
@@ -65,3 +67,7 @@ class WhatsAppNotificationOverride(Notification):
     def _normalize_number(self, raw):
         num = re.sub(r'^(?:\+|00|0)+', '', str(raw))
         return num if num.startswith("91") else "91" + num
+
+    def format_number(self, raw):
+        """Allow build_whatsapp_payload to call format_number"""
+        return self._normalize_number(raw)
