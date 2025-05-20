@@ -1,7 +1,7 @@
 import re
 import frappe
 from frappe.email.doctype.notification.notification import Notification
-from frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification import (
+from frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification import (
     build_whatsapp_payload, _post_and_log
 )
 
