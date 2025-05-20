@@ -15,7 +15,7 @@ class WhatsAppNotificationOverride(Notification):
         if not self.custom_whatsapp_template:
             frappe.throw("Please select a WhatsApp Template")
 
-        tpl = frappe.get_doc("WhatsApp Template", self.custom_whatsapp_template)
+        tpl = frappe.get_doc("WhatsApp Templates", self.custom_whatsapp_template)
 
         numbers = set()
         for row in (self.recipients or []):
