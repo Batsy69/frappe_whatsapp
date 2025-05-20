@@ -297,4 +297,35 @@ def trigger_notifications(method="daily"):
         for d in doc_list:
             alert = frappe.get_doc("WhatsApp Notification", d.name)
             alert.get_documents_for_today()
+
+        import frappe
+
+def build_whatsapp_payload(notification, doc):
+    """Build the JSON for WhatsApp."""
+    template_name = frappe.db.get_value(
+        "WhatsApp Templates", notification.template, "actual_name"
+    )
+    return {
+        "messaging_product": "whatsapp",
+        "to": notification.format_number(doc.whatsapp_number),
+        "type": "template",
+        "template": {
+            "name": template_name,
+            "language": {"code": notification.language_code},
+        }
+    }
+
+def _post_and_log(data, notification_name, doc):
+    """Send to WhatsApp API and log the result."""
+    # call the API (you might use frappe.integrations.utils.make_post_request)
+    response = frappe.get_doc("WhatsApp Notification", notification_name).send_webhook(data)
+    # then record it in your log doctype
+    frappe.get_doc({
+        "doctype": "WhatsApp Notification Log",
+        "notification": notification_name,
+        "status": response.get("status"),
+        "message_id": response.get("messages", [{}])[0].get("id"),
+        "doc_name": doc.name
+    }).insert()
+
            
