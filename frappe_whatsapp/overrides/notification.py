@@ -14,6 +14,9 @@ class WhatsAppNotificationOverride(Notification):
         if not self.custom_whatsapp_template:
             frappe.throw("Please select a WhatsApp Template")
 
+        # alias custom template so build_whatsapp_payload can use it
+        self.template = self.custom_whatsapp_template
+
         # Collect phone numbers based on Roles in Recipients
         numbers = set()
         for recipient in (self.recipients or []):
