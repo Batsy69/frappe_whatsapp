@@ -2,30 +2,38 @@
 
 import re
 import frappe
-from frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification import WhatsAppNotification, _post_and_log
+from frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification import (
+    WhatsAppNotification, _post_and_log
+)
 
 class WhatsAppNotificationOverride(WhatsAppNotification):
+    @property
+    def disabled(self):
+        """
+        Map the standard Notification.doctype `enabled` field to WhatsAppNotification's `disabled` logic.
+        """
+        # Notification.doctype uses 'enabled' boolean; invert it for 'disabled'
+        return not getattr(self, 'enabled', False)
+
     def send(self, doc):
         """
-        Override Notification.send to hook into the frappe_whatsapp channel.
+        Intercept only our custom WhatsApp channel, then delegate to core send.
         """
-        # 1) If not our channel, defer to base Notification
         if self.channel != "frappe_whatsapp":
             return super().send(doc)
 
-        # 2) Ensure a template is selected
         if not getattr(self, 'custom_whatsapp_template', None):
             frappe.throw("Please select a WhatsApp Template")
 
-        # 3) Make the core logic aware of our custom-template field
+        # Provide the core class with the template
         self.template = self.custom_whatsapp_template
 
-        # 4) Delegate to the core WhatsAppNotification push method
+        # Let the core class build, send, and log the WhatsApp message
         return self.send_template_message(doc)
 
     def get_contact_list(self, doc):
         """
-        Return a list of normalized phone numbers for each Role in self.recipients.
+        Return normalized phone numbers for each Role in Recipients.
         """
         numbers = set()
         for recipient in (self.recipients or []):
