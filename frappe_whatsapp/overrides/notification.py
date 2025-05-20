@@ -1,7 +1,7 @@
 import re
 import frappe
 from frappe.email.doctype.notification.notification import Notification
-from frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification import (
+from frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification import (
     build_whatsapp_payload, _post_and_log
 )
 
@@ -45,9 +45,11 @@ class WhatsAppNotificationOverride(Notification):
             return
 
         # Evaluate condition if any
-        ctx = doc.as_dict()
-        if self.condition and not frappe.safe_eval(self.condition, None, ctx):
-            return
+        if self.condition:
+            # provide 'doc' in context for condition evaluation
+            ctx = {"doc": doc}
+            if not frappe.safe_eval(self.condition, None, ctx):
+                return
 
         # Build payload
         components = tpl.build_components(doc, getattr(self, "whatsapp_message_fields", []))
