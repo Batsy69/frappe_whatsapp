@@ -1,23 +1,32 @@
+# File: apps/frappe_whatsapp/frappe_whatsapp/overrides/notification.py
+
 import re
 import frappe
-from frappe.email.doctype.notification.notification import Notification
-from frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification import (
-    build_whatsapp_payload, _post_and_log
-)
+from frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification import WhatsAppNotification, _post_and_log
 
-class WhatsAppNotificationOverride(Notification):
+class WhatsAppNotificationOverride(WhatsAppNotification):
     def send(self, doc):
-        # Only intercept our channel
+        """
+        Override Notification.send to hook into the frappe_whatsapp channel.
+        """
+        # 1) If not our channel, defer to base Notification
         if self.channel != "frappe_whatsapp":
             return super().send(doc)
 
-        if not self.custom_whatsapp_template:
+        # 2) Ensure a template is selected
+        if not getattr(self, 'custom_whatsapp_template', None):
             frappe.throw("Please select a WhatsApp Template")
 
-        # Make custom template available as self.template
+        # 3) Make the core logic aware of our custom-template field
         self.template = self.custom_whatsapp_template
 
-        # Collect phone numbers based on Roles in Recipients
+        # 4) Delegate to the core WhatsAppNotification push method
+        return self.send_template_message(doc)
+
+    def get_contact_list(self, doc):
+        """
+        Return a list of normalized phone numbers for each Role in self.recipients.
+        """
         numbers = set()
         for recipient in (self.recipients or []):
             role_name = recipient.receiver_by_role
@@ -35,39 +44,9 @@ class WhatsAppNotificationOverride(Notification):
                     frappe.log_error(f"User {user_name} not found", "WhatsApp Notification Override")
                     continue
 
-                user = frappe.get_doc("User", user_name)
-                if user.mobile_no:
-                    numbers.add(self._normalize_number(user.mobile_no))
+                mobile = frappe.get_value("User", user_name, "mobile_no")
+                if mobile:
+                    num = re.sub(r'^(?:\+|00|0)+', '', str(mobile))
+                    numbers.add(num if num.startswith("91") else "91" + num)
 
-        if not numbers:
-            return
-
-        # Evaluate condition if any
-        if self.condition:
-            ctx = {"doc": doc}
-            if not frappe.safe_eval(self.condition, None, ctx):
-                return
-
-        # Send one message per number using build_whatsapp_payload
-        for to in numbers:
-            payload = build_whatsapp_payload(self, doc)
-            payload["to"] = to
-            frappe.enqueue(
-                _post_and_log,
-                queue="short",
-                timeout=120,
-                kwargs={
-                    "url": frappe.get_conf().whatsapp_api_url,
-                    "data": payload,
-                    "doc": doc,
-                    "notification": self.name
-                }
-            )
-
-    def _normalize_number(self, raw):
-        num = re.sub(r'^(?:\+|00|0)+', '', str(raw))
-        return num if num.startswith("91") else "91" + num
-
-    def format_number(self, raw):
-        """Allow build_whatsapp_payload to call format_number"""
-        return self._normalize_number(raw)
+        return list(numbers)
