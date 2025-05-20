@@ -76,7 +76,7 @@ doc_events = {
 # Override the core Notification DocType to hook in our WhatsApp logic
 # -------------------------------------------------------------------
 override_doctype_class = {
-    "Notification": "frappe_whatsapp.overrides.notification.WhatsAppNotificationOverride"
+    "WhatsApp Notification": "frappe_whatsapp.overrides.notification.WhatsAppNotificationOverride"
 }
 
 # -------------------------------------------------------------------
