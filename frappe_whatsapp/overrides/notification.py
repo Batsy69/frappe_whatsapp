@@ -1,6 +1,5 @@
 import re
 import frappe
-# ← corrected import below
 from frappe.email.doctype.notification.notification import Notification
 from frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification import (
     build_whatsapp_payload, _post_and_log
@@ -17,23 +16,40 @@ class WhatsAppNotificationOverride(Notification):
 
         tpl = frappe.get_doc("WhatsApp Templates", self.custom_whatsapp_template)
 
+        # Collect phone numbers based on Roles in Recipients
         numbers = set()
-        for row in (self.recipients or []):
-            if row.receiver_by_role:
-                for hr in frappe.get_all("Has Role",
-                                         filters={"role": row.receiver_by_role},
-                                         fields=["parent"]):
-                    user = frappe.get_doc("User", hr.parent)
-                    if user.mobile_no:
-                        numbers.add(self._normalize_number(user.mobile_no))
+        for recipient in (self.recipients or []):
+            role_name = recipient.receiver_by_role
+            if not role_name:
+                continue
+
+            assignments = frappe.get_all(
+                "Has Role",
+                filters={
+                    "role": role_name,
+                    "parenttype": "User"
+                },
+                fields=["parent"]
+            )
+            for a in assignments:
+                user_name = a.parent
+                if not frappe.db.exists("User", user_name):
+                    frappe.log_error(f"User {user_name} not found", "WhatsApp Notification Override")
+                    continue
+
+                user = frappe.get_doc("User", user_name)
+                if user.mobile_no:
+                    numbers.add(self._normalize_number(user.mobile_no))
 
         if not numbers:
             return
 
+        # Evaluate condition if any
         ctx = doc.as_dict()
         if self.condition and not frappe.safe_eval(self.condition, None, ctx):
             return
 
+        # Build payload
         components = tpl.build_components(doc, getattr(self, "whatsapp_message_fields", []))
         payload = {
             "template": {
@@ -45,6 +61,7 @@ class WhatsAppNotificationOverride(Notification):
         if self.attach_print:
             payload["pdf"] = frappe.utils.get_url_to_form(doc.doctype, doc.name)
 
+        # Enqueue send for each number
         for to in numbers:
             payload["to"] = to
             frappe.enqueue(
