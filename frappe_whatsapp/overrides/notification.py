@@ -14,8 +14,6 @@ class WhatsAppNotificationOverride(Notification):
         if not self.custom_whatsapp_template:
             frappe.throw("Please select a WhatsApp Template")
 
-        tpl = frappe.get_doc("WhatsApp Templates", self.custom_whatsapp_template)
-
         # Collect phone numbers based on Roles in Recipients
         numbers = set()
         for recipient in (self.recipients or []):
@@ -24,12 +22,7 @@ class WhatsAppNotificationOverride(Notification):
                 continue
 
             assignments = frappe.get_all(
-                "Has Role",
-                filters={
-                    "role": role_name,
-                    "parenttype": "User"
-                },
-                fields=["parent"]
+                "Has Role", filters={"role": role_name, "parenttype": "User"}, fields=["parent"]
             )
             for a in assignments:
                 user_name = a.parent
@@ -46,36 +39,24 @@ class WhatsAppNotificationOverride(Notification):
 
         # Evaluate condition if any
         if self.condition:
-            # provide 'doc' in context for condition evaluation
             ctx = {"doc": doc}
             if not frappe.safe_eval(self.condition, None, ctx):
                 return
 
-        # Build payload
-        components = tpl.build_components(doc, getattr(self, "whatsapp_message_fields", []))
-        payload = {
-            "template": {
-                "name": tpl.whatsapp_name,
-                "language": {"code": tpl.language},
-                "components": components
-            }
-        }
-        if self.attach_print:
-            payload["pdf"] = frappe.utils.get_url_to_form(doc.doctype, doc.name)
-
-        # Enqueue send for each number
+        # Send one message per number using build_whatsapp_payload
         for to in numbers:
+            payload = build_whatsapp_payload(self, doc)
             payload["to"] = to
             frappe.enqueue(
                 _post_and_log,
                 queue="short",
                 timeout=120,
-                kwargs=dict(
-                    url=frappe.get_conf().whatsapp_api_url,
-                    data=payload,
-                    doc=doc,
-                    notification=self.name
-                )
+                kwargs={
+                    "url": frappe.get_conf().whatsapp_api_url,
+                    "data": payload,
+                    "doc": doc,
+                    "notification": self.name
+                }
             )
 
     def _normalize_number(self, raw):
